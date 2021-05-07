@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : DataTypes
+Description : This is a module containning self-defined haskell data
+Copyright   : (c) 
+                  Tian Yang, 
+                  Nansu Wang,
+                  Ziqi Zheng,
+                  Yizhuo Zhang,
+License     : GPL-3
+Maintainer  : Yang Tian (ml191028@qmul.ac.uk)
+Stability   : experimental
+Portability : POSIX
+-}</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">DataTypes</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-16"></span><span>      </span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier">Movie</span></a></span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier">Movie</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>      </span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier">Actor</span></a></span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier">Actor</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>      </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- | Movie, the first param is movie id, the second is movie title, and the last is release date</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">data</span><span> </span><span id="Movie"><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-var">Movie</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Movie"><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-var">Movie</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="movieId"><span class="annot"><span class="annottext">Movie -&gt; Int
+</span><a href="DataTypes.html#movieId"><span class="hs-identifier hs-var hs-var">movieId</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span id="title"><span class="annot"><span class="annottext">Movie -&gt; String
+</span><a href="DataTypes.html#title"><span class="hs-identifier hs-var hs-var">title</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span id="releaseDate"><span class="annot"><span class="annottext">Movie -&gt; String
+</span><a href="DataTypes.html#releaseDate"><span class="hs-identifier hs-var hs-var">releaseDate</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679137787"><span id="local-6989586621679137789"><span class="annot"><span class="annottext">Movie -&gt; Movie -&gt; Bool
+(Movie -&gt; Movie -&gt; Bool) -&gt; (Movie -&gt; Movie -&gt; Bool) -&gt; Eq Movie
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Movie -&gt; Movie -&gt; Bool
+$c/= :: Movie -&gt; Movie -&gt; Bool
+== :: Movie -&gt; Movie -&gt; Bool
+$c== :: Movie -&gt; Movie -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679137781"><span id="local-6989586621679137784"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-25"></span><span>  </span><span id="local-6989586621679137779"><span class="annot"><span class="annottext">show :: Movie -&gt; String
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span> </span><span class="hs-identifier">_</span><span> </span><span id="local-6989586621679137777"><span class="annot"><span class="annottext">title :: String
+</span><a href="#local-6989586621679137777"><span class="hs-identifier hs-var">title</span></a></span></span><span> </span><span class="hs-identifier">_</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679137777"><span class="hs-identifier hs-var">title</span></a></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- | actor, the first param is actor id , the second is actor name, and the last is an arrary contains all movies the actor plays</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">data</span><span> </span><span id="Actor"><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-var">Actor</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Actor"><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-var">Actor</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="actorId"><span class="annot"><span class="annottext">Actor -&gt; Int
+</span><a href="DataTypes.html#actorId"><span class="hs-identifier hs-var hs-var">actorId</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span id="actorName"><span class="annot"><span class="annottext">Actor -&gt; String
+</span><a href="DataTypes.html#actorName"><span class="hs-identifier hs-var hs-var">actorName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span id="movie"><span class="annot"><span class="annottext">Actor -&gt; [Movie]
+</span><a href="DataTypes.html#movie"><span class="hs-identifier hs-var hs-var">movie</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span class="hs-special">]</span><span class="hs-special">}</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679137770"><span id="local-6989586621679137772"><span class="annot"><span class="annottext">Actor -&gt; Actor -&gt; Bool
+(Actor -&gt; Actor -&gt; Bool) -&gt; (Actor -&gt; Actor -&gt; Bool) -&gt; Eq Actor
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Actor -&gt; Actor -&gt; Bool
+$c/= :: Actor -&gt; Actor -&gt; Bool
+== :: Actor -&gt; Actor -&gt; Bool
+$c== :: Actor -&gt; Actor -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679137764"><span id="local-6989586621679137766"><span id="local-6989586621679137768"><span class="annot"><span class="annottext">Int -&gt; Actor -&gt; ShowS
+[Actor] -&gt; ShowS
+Actor -&gt; String
+(Int -&gt; Actor -&gt; ShowS)
+-&gt; (Actor -&gt; String) -&gt; ([Actor] -&gt; ShowS) -&gt; Show Actor
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Actor] -&gt; ShowS
+$cshowList :: [Actor] -&gt; ShowS
+show :: Actor -&gt; String
+$cshow :: Actor -&gt; String
+showsPrec :: Int -&gt; Actor -&gt; ShowS
+$cshowsPrec :: Int -&gt; Actor -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span></pre></body></html>

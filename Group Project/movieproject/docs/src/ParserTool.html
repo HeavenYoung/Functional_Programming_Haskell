@@ -1,0 +1,266 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : DataTypes
+Description : This is a module to parse data
+Copyright   : (c) 
+                  Tian Yang, 
+                  Nansu Wang,
+                  Ziqi Zheng,
+                  Yizhuo Zhang,
+License     : GPL-3
+Maintainer  : Yang Tian (ml191028@qmul.ac.uk)
+Stability   : experimental
+Portability : POSIX
+-}</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">ParserTool</span><span>
+</span><span id="line-18"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="ParserTool.html#parseMovies"><span class="hs-identifier">parseMovies</span></a></span><span class="hs-special">,</span><span> </span><span>
+</span><span id="line-19"></span><span>     </span><span class="annot"><a href="ParserTool.html#parseActors"><span class="hs-identifier">parseActors</span></a></span><span class="hs-special">,</span><span> </span><span>
+</span><span id="line-20"></span><span>     </span><span class="annot"><a href="ParserTool.html#parsePages"><span class="hs-identifier">parsePages</span></a></span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="DataTypes.html"><span class="hs-identifier">DataTypes</span></a></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier">Actor</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier">Movie</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">decode</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.:)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">withObject</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">FromJSON</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">parseJSON</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Value</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Object</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson.Types</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">Parser</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">parseMaybe</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">MonadPlus</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">mzero</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">LB</span></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">fromMaybe</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">data</span><span> </span><span id="Results"><span class="annot"><a href="ParserTool.html#Results"><span class="hs-identifier hs-var">Results</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Results"><span class="annot"><a href="ParserTool.html#Results"><span class="hs-identifier hs-var">Results</span></a></span></span><span> </span><span class="hs-special">{</span><span id="id"><span class="annot"><span class="annottext">Results -&gt; Int
+</span><a href="ParserTool.html#id"><span class="hs-identifier hs-var hs-var">id</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span id="title"><span class="annot"><span class="annottext">Results -&gt; String
+</span><a href="ParserTool.html#title"><span class="hs-identifier hs-var hs-var">title</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span id="releaseDate"><span class="annot"><span class="annottext">Results -&gt; String
+</span><a href="ParserTool.html#releaseDate"><span class="hs-identifier hs-var hs-var">releaseDate</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">}</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679138001"><span id="local-6989586621679138003"><span id="local-6989586621679138005"><span class="annot"><span class="annottext">Int -&gt; Results -&gt; ShowS
+[Results] -&gt; ShowS
+Results -&gt; String
+(Int -&gt; Results -&gt; ShowS)
+-&gt; (Results -&gt; String) -&gt; ([Results] -&gt; ShowS) -&gt; Show Results
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Results] -&gt; ShowS
+$cshowList :: [Results] -&gt; ShowS
+show :: Results -&gt; String
+$cshow :: Results -&gt; String
+showsPrec :: Int -&gt; Results -&gt; ShowS
+$cshowsPrec :: Int -&gt; Results -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">data</span><span> </span><span id="MovieFromJSON"><span class="annot"><a href="ParserTool.html#MovieFromJSON"><span class="hs-identifier hs-var">MovieFromJSON</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MovieFromJSON"><span class="annot"><a href="ParserTool.html#MovieFromJSON"><span class="hs-identifier hs-var">MovieFromJSON</span></a></span></span><span> </span><span class="hs-special">{</span><span id="results"><span class="annot"><span class="annottext">MovieFromJSON -&gt; [Results]
+</span><a href="ParserTool.html#results"><span class="hs-identifier hs-var hs-var">results</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="ParserTool.html#Results"><span class="hs-identifier hs-type">Results</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span id="pages"><span class="annot"><span class="annottext">MovieFromJSON -&gt; Int
+</span><a href="ParserTool.html#pages"><span class="hs-identifier hs-var hs-var">pages</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">}</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679137991"><span id="local-6989586621679137993"><span id="local-6989586621679137995"><span class="annot"><span class="annottext">Int -&gt; MovieFromJSON -&gt; ShowS
+[MovieFromJSON] -&gt; ShowS
+MovieFromJSON -&gt; String
+(Int -&gt; MovieFromJSON -&gt; ShowS)
+-&gt; (MovieFromJSON -&gt; String)
+-&gt; ([MovieFromJSON] -&gt; ShowS)
+-&gt; Show MovieFromJSON
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [MovieFromJSON] -&gt; ShowS
+$cshowList :: [MovieFromJSON] -&gt; ShowS
+show :: MovieFromJSON -&gt; String
+$cshow :: MovieFromJSON -&gt; String
+showsPrec :: Int -&gt; MovieFromJSON -&gt; ShowS
+$cshowsPrec :: Int -&gt; MovieFromJSON -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679137988"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><a href="ParserTool.html#Results"><span class="hs-identifier hs-type">Results</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-38"></span><span>   </span><span id="local-6989586621679137986"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser Results
+</span><a href="#local-6989586621679137986"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Object</span></span><span> </span><span id="local-6989586621679137985"><span class="annot"><span class="annottext">v :: Object
+</span><a href="#local-6989586621679137985"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; String -&gt; Results
+</span><a href="ParserTool.html#Results"><span class="hs-identifier hs-var">Results</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; String -&gt; String -&gt; Results)
+-&gt; Parser Int -&gt; Parser (String -&gt; String -&gt; Results)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137985"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser Int
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;id&quot;</span></span><span> </span><span class="annot"><span class="annottext">Parser (String -&gt; String -&gt; Results)
+-&gt; Parser String -&gt; Parser (String -&gt; Results)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137985"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser String
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;title&quot;</span></span><span> </span><span class="annot"><span class="annottext">Parser (String -&gt; Results) -&gt; Parser String -&gt; Parser Results
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137985"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser String
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;release_date&quot;</span></span><span>
+</span><span id="line-39"></span><span>   </span><span class="annot"><span class="hs-identifier hs-var">parseJSON</span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Parser Results
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a
+</span><span class="hs-identifier hs-var">mzero</span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679137981"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><a href="ParserTool.html#MovieFromJSON"><span class="hs-identifier hs-type">MovieFromJSON</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>   </span><span id="local-6989586621679137980"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser MovieFromJSON
+</span><a href="#local-6989586621679137980"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Object</span></span><span> </span><span id="local-6989586621679137979"><span class="annot"><span class="annottext">v :: Object
+</span><a href="#local-6989586621679137979"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Results] -&gt; Int -&gt; MovieFromJSON
+</span><a href="ParserTool.html#MovieFromJSON"><span class="hs-identifier hs-var">MovieFromJSON</span></a></span><span> </span><span class="annot"><span class="annottext">([Results] -&gt; Int -&gt; MovieFromJSON)
+-&gt; Parser [Results] -&gt; Parser (Int -&gt; MovieFromJSON)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137979"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser [Results]
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;results&quot;</span></span><span> </span><span class="annot"><span class="annottext">Parser (Int -&gt; MovieFromJSON) -&gt; Parser Int -&gt; Parser MovieFromJSON
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137979"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser Int
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;total_pages&quot;</span></span><span>
+</span><span id="line-43"></span><span>   </span><span class="annot"><span class="hs-identifier hs-var">parseJSON</span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Parser MovieFromJSON
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a
+</span><span class="hs-identifier hs-var">mzero</span></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="annot"><a href="ParserTool.html#parsePages"><span class="hs-identifier hs-type">parsePages</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LB.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-46"></span><span id="parsePages"><span class="annot"><span class="annottext">parsePages :: ByteString -&gt; Int
+</span><a href="ParserTool.html#parsePages"><span class="hs-identifier hs-var hs-var">parsePages</span></a></span></span><span> </span><span id="local-6989586621679137978"><span class="annot"><span class="annottext">b :: ByteString
+</span><a href="#local-6989586621679137978"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe Int -&gt; Int
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; Parser Int) -&gt; Value -&gt; Maybe Int
+forall a b. (a -&gt; Parser b) -&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">parseMaybe</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Parser Int
+</span><a href="ParserTool.html#pageParser"><span class="hs-identifier hs-var">pageParser</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Maybe Int) -&gt; Maybe Value -&gt; Maybe Int
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Maybe Value
+forall a. FromJSON a =&gt; ByteString -&gt; Maybe a
+</span><span class="hs-identifier hs-var">decode</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679137978"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="annot"><a href="ParserTool.html#pageParser"><span class="hs-identifier hs-type">pageParser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Parser</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-49"></span><span id="pageParser"><span class="annot"><span class="annottext">pageParser :: Value -&gt; Parser Int
+</span><a href="ParserTool.html#pageParser"><span class="hs-identifier hs-var hs-var">pageParser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; (Object -&gt; Parser Int) -&gt; Value -&gt; Parser Int
+forall a. String -&gt; (Object -&gt; Parser a) -&gt; Value -&gt; Parser a
+</span><span class="hs-identifier hs-var">withObject</span></span><span> </span><span class="annot"><span class="hs-string">&quot;pageParser&quot;</span></span><span> </span><span class="annot"><span class="annottext">((Object -&gt; Parser Int) -&gt; Value -&gt; Parser Int)
+-&gt; (Object -&gt; Parser Int) -&gt; Value -&gt; Parser Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679137975"><span class="annot"><span class="annottext">o :: Object
+</span><a href="#local-6989586621679137975"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137975"><span class="hs-identifier hs-var">o</span></a></span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser Int
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;total_pages&quot;</span></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679137972"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>   </span><span id="local-6989586621679137971"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser Movie
+</span><a href="#local-6989586621679137971"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Object</span></span><span> </span><span id="local-6989586621679137970"><span class="annot"><span class="annottext">o :: Object
+</span><a href="#local-6989586621679137970"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; String -&gt; Movie
+</span><a href="DataTypes.html#Movie"><span class="hs-identifier hs-var">Movie</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; String -&gt; String -&gt; Movie)
+-&gt; Parser Int -&gt; Parser (String -&gt; String -&gt; Movie)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137970"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser Int
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;id&quot;</span></span><span> </span><span class="annot"><span class="annottext">Parser (String -&gt; String -&gt; Movie)
+-&gt; Parser String -&gt; Parser (String -&gt; Movie)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137970"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser String
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;title&quot;</span></span><span> </span><span class="annot"><span class="annottext">Parser (String -&gt; Movie) -&gt; Parser String -&gt; Parser Movie
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137970"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser String
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;release_date&quot;</span></span><span>
+</span><span id="line-53"></span><span>   </span><span class="annot"><span class="hs-identifier hs-var">parseJSON</span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Parser Movie
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a
+</span><span class="hs-identifier hs-var">mzero</span></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- parse movie data and return a lsit of movie</span><span>
+</span><span id="line-56"></span><span class="annot"><a href="ParserTool.html#parseMovies"><span class="hs-identifier hs-type">parseMovies</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LB.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-57"></span><span id="parseMovies"><span class="annot"><span class="annottext">parseMovies :: ByteString -&gt; [Movie]
+</span><a href="ParserTool.html#parseMovies"><span class="hs-identifier hs-var hs-var">parseMovies</span></a></span></span><span> </span><span id="local-6989586621679137968"><span class="annot"><span class="annottext">b :: ByteString
+</span><a href="#local-6989586621679137968"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Movie] -&gt; Maybe [Movie] -&gt; [Movie]
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; Parser [Movie]) -&gt; Value -&gt; Maybe [Movie]
+forall a b. (a -&gt; Parser b) -&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">parseMaybe</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Parser [Movie]
+</span><a href="ParserTool.html#movieParser"><span class="hs-identifier hs-var">movieParser</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Maybe [Movie]) -&gt; Maybe Value -&gt; Maybe [Movie]
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Maybe Value
+forall a. FromJSON a =&gt; ByteString -&gt; Maybe a
+</span><span class="hs-identifier hs-var">decode</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679137968"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="annot"><a href="ParserTool.html#movieParser"><span class="hs-identifier hs-type">movieParser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Parser</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-60"></span><span id="movieParser"><span class="annot"><span class="annottext">movieParser :: Value -&gt; Parser [Movie]
+</span><a href="ParserTool.html#movieParser"><span class="hs-identifier hs-var hs-var">movieParser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; (Object -&gt; Parser [Movie]) -&gt; Value -&gt; Parser [Movie]
+forall a. String -&gt; (Object -&gt; Parser a) -&gt; Value -&gt; Parser a
+</span><span class="hs-identifier hs-var">withObject</span></span><span> </span><span class="annot"><span class="hs-string">&quot;movieParser&quot;</span></span><span> </span><span class="annot"><span class="annottext">((Object -&gt; Parser [Movie]) -&gt; Value -&gt; Parser [Movie])
+-&gt; (Object -&gt; Parser [Movie]) -&gt; Value -&gt; Parser [Movie]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679137966"><span class="annot"><span class="annottext">o :: Object
+</span><a href="#local-6989586621679137966"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137966"><span class="hs-identifier hs-var">o</span></a></span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser [Movie]
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;results&quot;</span></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-keyword">data</span><span> </span><span id="TmpActor"><span class="annot"><a href="ParserTool.html#TmpActor"><span class="hs-identifier hs-var">TmpActor</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TmpActor"><span class="annot"><a href="ParserTool.html#TmpActor"><span class="hs-identifier hs-var">TmpActor</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679137962"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><a href="ParserTool.html#TmpActor"><span class="hs-identifier hs-type">TmpActor</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>    </span><span id="local-6989586621679137961"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser TmpActor
+</span><a href="#local-6989586621679137961"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Object</span></span><span> </span><span id="local-6989586621679137960"><span class="annot"><span class="annottext">o :: Object
+</span><a href="#local-6989586621679137960"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; TmpActor
+</span><a href="ParserTool.html#TmpActor"><span class="hs-identifier hs-var">TmpActor</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; String -&gt; TmpActor)
+-&gt; Parser Int -&gt; Parser (String -&gt; TmpActor)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137960"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser Int
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;id&quot;</span></span><span> </span><span class="annot"><span class="annottext">Parser (String -&gt; TmpActor) -&gt; Parser String -&gt; Parser TmpActor
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137960"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser String
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;name&quot;</span></span><span>
+</span><span id="line-66"></span><span>    </span><span class="annot"><span class="hs-identifier hs-var">parseJSON</span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Parser TmpActor
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a
+</span><span class="hs-identifier hs-var">mzero</span></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- parse actor data and return an list of actor</span><span>
+</span><span id="line-69"></span><span class="annot"><a href="ParserTool.html#parseActors"><span class="hs-identifier hs-type">parseActors</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LB.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-type">Actor</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-70"></span><span id="parseActors"><span class="annot"><span class="annottext">parseActors :: ByteString -&gt; Movie -&gt; [Actor]
+</span><a href="ParserTool.html#parseActors"><span class="hs-identifier hs-var hs-var">parseActors</span></a></span></span><span> </span><span id="local-6989586621679137959"><span class="annot"><span class="annottext">cn :: ByteString
+</span><a href="#local-6989586621679137959"><span class="hs-identifier hs-var">cn</span></a></span></span><span> </span><span id="local-6989586621679137958"><span class="annot"><span class="annottext">movie :: Movie
+</span><a href="#local-6989586621679137958"><span class="hs-identifier hs-var">movie</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TmpActor -&gt; Actor) -&gt; [TmpActor] -&gt; [Actor]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Movie -&gt; TmpActor -&gt; Actor
+</span><a href="#local-6989586621679137957"><span class="hs-identifier hs-var">converteTmp</span></a></span><span> </span><span class="annot"><span class="annottext">Movie
+</span><a href="#local-6989586621679137958"><span class="hs-identifier hs-var">movie</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TmpActor] -&gt; Maybe [TmpActor] -&gt; [TmpActor]
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; Parser [TmpActor]) -&gt; Value -&gt; Maybe [TmpActor]
+forall a b. (a -&gt; Parser b) -&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">parseMaybe</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Parser [TmpActor]
+</span><a href="ParserTool.html#actorParser"><span class="hs-identifier hs-var">actorParser</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Maybe [TmpActor]) -&gt; Maybe Value -&gt; Maybe [TmpActor]
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Maybe Value
+forall a. FromJSON a =&gt; ByteString -&gt; Maybe a
+</span><span class="hs-identifier hs-var">decode</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679137959"><span class="hs-identifier hs-var">cn</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-72"></span><span>    </span><span class="annot"><a href="#local-6989586621679137957"><span class="hs-identifier hs-type">converteTmp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="ParserTool.html#TmpActor"><span class="hs-identifier hs-type">TmpActor</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-type">Actor</span></a></span><span>
+</span><span id="line-73"></span><span>    </span><span id="local-6989586621679137957"><span class="annot"><span class="annottext">converteTmp :: Movie -&gt; TmpActor -&gt; Actor
+</span><a href="#local-6989586621679137957"><span class="hs-identifier hs-var hs-var">converteTmp</span></a></span></span><span> </span><span id="local-6989586621679137955"><span class="annot"><span class="annottext">movie :: Movie
+</span><a href="#local-6989586621679137955"><span class="hs-identifier hs-var">movie</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="ParserTool.html#TmpActor"><span class="hs-identifier hs-type">TmpActor</span></a></span><span> </span><span id="local-6989586621679137954"><span class="annot"><span class="annottext">aId :: Int
+</span><a href="#local-6989586621679137954"><span class="hs-identifier hs-var">aId</span></a></span></span><span> </span><span id="local-6989586621679137953"><span class="annot"><span class="annottext">name :: String
+</span><a href="#local-6989586621679137953"><span class="hs-identifier hs-var">name</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; [Movie] -&gt; Actor
+</span><a href="DataTypes.html#Actor"><span class="hs-identifier hs-var">Actor</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679137954"><span class="hs-identifier hs-var">aId</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679137953"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Movie
+</span><a href="#local-6989586621679137955"><span class="hs-identifier hs-var">movie</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="annot"><a href="ParserTool.html#actorParser"><span class="hs-identifier hs-type">actorParser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Parser</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="ParserTool.html#TmpActor"><span class="hs-identifier hs-type">TmpActor</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-76"></span><span id="actorParser"><span class="annot"><span class="annottext">actorParser :: Value -&gt; Parser [TmpActor]
+</span><a href="ParserTool.html#actorParser"><span class="hs-identifier hs-var hs-var">actorParser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; (Object -&gt; Parser [TmpActor]) -&gt; Value -&gt; Parser [TmpActor]
+forall a. String -&gt; (Object -&gt; Parser a) -&gt; Value -&gt; Parser a
+</span><span class="hs-identifier hs-var">withObject</span></span><span> </span><span class="annot"><span class="hs-string">&quot;actorParser&quot;</span></span><span> </span><span class="annot"><span class="annottext">((Object -&gt; Parser [TmpActor]) -&gt; Value -&gt; Parser [TmpActor])
+-&gt; (Object -&gt; Parser [TmpActor]) -&gt; Value -&gt; Parser [TmpActor]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679137951"><span class="annot"><span class="annottext">o :: Object
+</span><a href="#local-6989586621679137951"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679137951"><span class="hs-identifier hs-var">o</span></a></span><span class="annot"><span class="annottext">Object -&gt; Text -&gt; Parser [TmpActor]
+forall a. FromJSON a =&gt; Object -&gt; Text -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="hs-string">&quot;cast&quot;</span></span><span>
+</span><span id="line-77"></span></pre></body></html>

@@ -1,0 +1,84 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 6dbbeda4b29295dd38d763a3bbd37306bb91a6b2e255b2e1e889c8722155fca7
+
+name:           bank
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/bank#readme>
+homepage:       https://github.com/githubuser/bank#readme
+bug-reports:    https://github.com/githubuser/bank/issues
+author:         Yang Tian
+maintainer:     tian.yang@hss19.qmul.ac.uk
+copyright:      2020 Yang Tian
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/bank
+
+library
+  exposed-modules:
+      BankSimulator
+      DataTypes
+  other-modules:
+      Paths_bank
+  hs-source-dirs:
+      src
+  build-depends:
+      TCache
+    , async
+    , base >=4.7 && <5
+    , containers
+    , parallel
+    , random
+    , say
+    , stm
+  default-language: Haskell2010
+
+executable bank-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_bank
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      TCache
+    , async
+    , bank
+    , base >=4.7 && <5
+    , containers
+    , parallel
+    , random
+    , say
+    , stm
+  default-language: Haskell2010
+
+test-suite bank-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_bank
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      TCache
+    , async
+    , bank
+    , base >=4.7 && <5
+    , containers
+    , parallel
+    , random
+    , say
+    , stm
+  default-language: Haskell2010

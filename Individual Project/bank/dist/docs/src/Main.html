@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : Bank
+Description : This is a main entry of the application
+Copyright   : (c) Tian Yang
+License     : GPL-3
+Maintainer  : Yang Tian (tian.yang@hss19.qmul.ac.uk)
+Stability   : experimental
+Portability : POSIX
+-}</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Main</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Say</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">sayString</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="BankSimulator.html"><span class="hs-identifier">BankSimulator</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="DataTypes.html"><span class="hs-identifier">DataTypes</span></a></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="DataTypes.html#Account"><span class="hs-identifier">Account</span></a></span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Account"><span class="hs-identifier">Account</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.Environment</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">getArgs</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Concurrent</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">threadDelay</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Concurrent.STM</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">atomically</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">newTVarIO</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">readTVar</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">forever</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">void</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">when</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">mapM</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">forM_</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Concurrent.Async</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">async</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">wait</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Parallel.Strategies</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">{- | Main fucntion of the Application, when we put &quot;stack run normal&quot;, the application will run with normal mode, 
+     and &quot;stack ghc -- -threaded app/Main.hs &amp;&amp; ./app/Main parallel +RTS -N2&quot; to run the bank system in two cores
+   
+    step 1. spawn an account id list and excute the run function
+-}</span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Main.html#main"><span class="hs-identifier hs-type">main</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span id="main"><span class="annot"><span class="annottext">main :: IO ()
+</span><a href="Main.html#main"><span class="hs-identifier hs-var hs-var">main</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-31"></span><span>    </span><span id="local-6989586621679059209"><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679059209"><span class="hs-identifier hs-var">args</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO [String]
+</span><span class="hs-identifier hs-var">getArgs</span></span><span>
+</span><span id="line-32"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679059209"><span class="hs-identifier hs-var">args</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-33"></span><span>      </span><span class="hs-special">[</span><span class="hs-string">&quot;normal&quot;</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>          </span><span class="hs-comment">-- spawn an account id list and run</span><span>
+</span><span id="line-35"></span><span>          </span><span class="annot"><span class="annottext">[Int] -&gt; IO ()
+</span><a href="Main.html#run"><span class="hs-identifier hs-var">run</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">1</span></span><span class="hs-glyph">..</span><span class="annot"><span class="hs-number">10</span></span><span class="hs-special">]</span><span>
+</span><span id="line-36"></span><span>      </span><span class="hs-special">[</span><span class="hs-string">&quot;parallel&quot;</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>          </span><span class="annot"><span class="annottext">IO () -&gt; IO (Async ())
+forall a. IO a -&gt; IO (Async a)
+</span><span class="hs-identifier hs-var">async</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO (Async ())) -&gt; IO () -&gt; IO (Async ())
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; IO ()
+</span><a href="Main.html#run"><span class="hs-identifier hs-var">run</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">1</span></span><span class="hs-glyph">..</span><span class="annot"><span class="hs-number">5</span></span><span class="hs-special">]</span><span>
+</span><span id="line-38"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IO () -&gt; IO (Async ())
+forall a. IO a -&gt; IO (Async a)
+</span><span class="hs-identifier hs-var">async</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO (Async ())) -&gt; IO () -&gt; IO (Async ())
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; IO ()
+</span><a href="Main.html#run"><span class="hs-identifier hs-var">run</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">6</span></span><span class="hs-glyph">..</span><span class="annot"><span class="hs-number">10</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IO (Async ()) -&gt; (Async () -&gt; IO ()) -&gt; IO ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Async () -&gt; IO ()
+forall a. Async a -&gt; IO a
+</span><span class="hs-identifier hs-var">wait</span></span><span>
+</span><span id="line-39"></span><span>      </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">IO ()
+</span><a href="Main.html#syntaxError"><span class="hs-identifier hs-var">syntaxError</span></a></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">{- | syntaxError -}</span><span>
+</span><span id="line-42"></span><span id="syntaxError"><span class="annot"><span class="annottext">syntaxError :: IO ()
+</span><a href="Main.html#syntaxError"><span class="hs-identifier hs-var hs-var">syntaxError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; IO ()
+</span><span class="hs-identifier hs-var">putStrLn</span></span><span>
+</span><span id="line-43"></span><span>   </span><span class="annot"><span class="hs-string">&quot;Usage: Bank command [args]\n\
+   \\n\
+   \normal      Run bank with single core\n\
+   \parallel    Run bank in parallel\n&quot;</span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">{- | Run the bank simulator with concrete account id list 
+     step 1, creat 10 customers
+     step 2, simulate transferring
+     step 3. print the current account balance after the each transferring
+-}</span><span>
+</span><span id="line-53"></span><span class="annot"><a href="Main.html#run"><span class="hs-identifier hs-type">run</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span id="run"><span class="annot"><span class="annottext">run :: [Int] -&gt; IO ()
+</span><a href="Main.html#run"><span class="hs-identifier hs-var hs-var">run</span></a></span></span><span> </span><span id="local-6989586621679059205"><span class="annot"><span class="annottext">accountIds :: [Int]
+</span><a href="#local-6989586621679059205"><span class="hs-identifier hs-var">accountIds</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679059204"><span class="annot"><span class="annottext">[(Int, Account)]
+</span><a href="#local-6989586621679059204"><span class="hs-identifier hs-var">accounts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; IO (Int, Account)) -&gt; [Int] -&gt; IO [(Int, Account)]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679059203"><span class="annot"><span class="annottext">aid :: Int
+</span><a href="#local-6989586621679059203"><span class="hs-identifier hs-var">aid</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-56"></span><span>        </span><span id="local-6989586621679059202"><span class="annot"><span class="annottext">TVar Int
+</span><a href="#local-6989586621679059202"><span class="hs-identifier hs-var">balanceVar</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IO (TVar Int)
+forall a. a -&gt; IO (TVar a)
+</span><span class="hs-identifier hs-var">newTVarIO</span></span><span> </span><span class="annot"><span class="hs-number">1000</span></span><span> </span><span class="hs-comment">-- starting with &#163;1000</span><span>
+</span><span id="line-57"></span><span>        </span><span class="annot"><span class="annottext">(Int, Account) -&gt; IO (Int, Account)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">((Int, Account) -&gt; IO (Int, Account))
+-&gt; (Int, Account) -&gt; IO (Int, Account)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679059203"><span class="hs-identifier hs-var">aid</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; TVar Int -&gt; Account
+</span><a href="DataTypes.html#Account"><span class="hs-identifier hs-var">Account</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679059203"><span class="hs-identifier hs-var">aid</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679059203"><span class="hs-identifier hs-var">aid</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TVar Int
+</span><a href="#local-6989586621679059202"><span class="hs-identifier hs-var">balanceVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>        </span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679059205"><span class="hs-identifier hs-var">accountIds</span></a></span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679059200"><span class="annot"><span class="annottext">accountDict :: Map Int Account
+</span><a href="#local-6989586621679059200"><span class="hs-identifier hs-var hs-var">accountDict</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Account)] -&gt; Map Int Account
+forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">[(Int, Account)]
+</span><a href="#local-6989586621679059204"><span class="hs-identifier hs-var">accounts</span></a></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span>    </span><span class="annot"><span class="annottext">[(Int, Account)] -&gt; ((Int, Account) -&gt; IO ()) -&gt; IO ()
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="annot"><span class="annottext">[(Int, Account)]
+</span><a href="#local-6989586621679059204"><span class="hs-identifier hs-var">accounts</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="hs-identifier">_</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679059198"><span class="annot"><span class="annottext">act :: Account
+</span><a href="#local-6989586621679059198"><span class="hs-identifier hs-var">act</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Account -&gt; Map Int Account -&gt; (Int, Int) -&gt; IO ()
+</span><a href="BankSimulator.html#simulateTransferThread"><span class="hs-identifier hs-var">simulateTransferThread</span></a></span><span> </span><span class="annot"><span class="annottext">Account
+</span><a href="#local-6989586621679059198"><span class="hs-identifier hs-var">act</span></a></span><span> </span><span class="annot"><span class="annottext">Map Int Account
+</span><a href="#local-6989586621679059200"><span class="hs-identifier hs-var">accountDict</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679059205"><span class="hs-identifier hs-var">accountIds</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">last</span></span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679059205"><span class="hs-identifier hs-var">accountIds</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span>    </span><span class="annot"><span class="annottext">IO Any -&gt; IO ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(IO Any -&gt; IO ()) -&gt; IO Any -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">IO () -&gt; IO Any
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">forever</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO Any) -&gt; IO () -&gt; IO Any
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-64"></span><span>        </span><span class="annot"><span class="annottext">[(Int, Account)] -&gt; ((Int, Account) -&gt; IO ()) -&gt; IO ()
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="annot"><span class="annottext">[(Int, Account)]
+</span><a href="#local-6989586621679059204"><span class="hs-identifier hs-var">accounts</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679059194"><span class="annot"><span class="annottext">aid :: Int
+</span><a href="#local-6989586621679059194"><span class="hs-identifier hs-var">aid</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679059193"><span class="annot"><span class="annottext">act :: Account
+</span><a href="#local-6989586621679059193"><span class="hs-identifier hs-var">act</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Account"><span class="hs-identifier hs-type">Account</span></a></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-identifier">_</span><span> </span><span id="local-6989586621679059192"><span class="annot"><span class="annottext">balance :: TVar Int
+</span><a href="#local-6989586621679059192"><span class="hs-identifier hs-var">balance</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-65"></span><span>            </span><span id="local-6989586621679059191"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679059191"><span class="hs-identifier hs-var">curBal</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">STM Int -&gt; IO Int
+forall a. STM a -&gt; IO a
+</span><span class="hs-identifier hs-var">atomically</span></span><span> </span><span class="annot"><span class="annottext">(STM Int -&gt; IO Int) -&gt; STM Int -&gt; IO Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TVar Int -&gt; STM Int
+forall a. TVar a -&gt; STM a
+</span><span class="hs-identifier hs-var">readTVar</span></span><span> </span><span class="annot"><span class="annottext">TVar Int
+</span><a href="#local-6989586621679059192"><span class="hs-identifier hs-var">balance</span></a></span><span>
+</span><span id="line-66"></span><span>            </span><span class="annot"><span class="annottext">String -&gt; IO ()
+forall (m :: * -&gt; *). MonadIO m =&gt; String -&gt; m ()
+</span><span class="hs-identifier hs-var">sayString</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; IO ()) -&gt; String -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="hs-string">&quot;Balance of Account &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679059194"><span class="hs-identifier hs-var">aid</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="hs-string">&quot; is &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679059191"><span class="hs-identifier hs-var">curBal</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- print the balance of current account</span><span>
+</span><span id="line-67"></span><span>        </span><span class="annot"><span class="annottext">Int -&gt; IO ()
+</span><span class="hs-identifier hs-var">threadDelay</span></span><span> </span><span class="annot"><span class="hs-number">5000000</span></span><span> </span><span class="hs-comment">-- query every 5 seconds</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span></pre></body></html>

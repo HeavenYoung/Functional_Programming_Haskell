@@ -1,0 +1,555 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : DataBaseTool
+Description : This is a module to excute all database operation like insert, delete and select 
+Copyright   : (c) 
+                  Tian Yang, 
+                  Nansu Wang,
+                  Ziqi Zheng,
+                  Yizhuo Zhang,
+License     : GPL-3
+Maintainer  : Yang Tian (ml191028@qmul.ac.uk)
+Stability   : experimental
+Portability : POSIX
+-}</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">DataBaseTool</span><span>
+</span><span id="line-16"></span><span>    </span><span class="hs-special">(</span><span> </span><span>
+</span><span id="line-17"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#initialiseDB"><span class="hs-identifier">initialiseDB</span></a></span><span class="hs-special">,</span><span> </span><span>
+</span><span id="line-18"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#dropTablesFromDatabase"><span class="hs-identifier">dropTablesFromDatabase</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-19"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#cleanupDatabase"><span class="hs-identifier">cleanupDatabase</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#disconnectDB"><span class="hs-identifier">disconnectDB</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#insertMovieIntoDataBase"><span class="hs-identifier">insertMovieIntoDataBase</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-22"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#insertActorIntoDataBase"><span class="hs-identifier">insertActorIntoDataBase</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-23"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#searchMoviesFromDataBase"><span class="hs-identifier">searchMoviesFromDataBase</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-24"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#extarctAllMoviesFromDatabase"><span class="hs-identifier">extarctAllMoviesFromDatabase</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-25"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#extarctAllActorsFromDatabase"><span class="hs-identifier">extarctAllActorsFromDatabase</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-26"></span><span>      </span><span class="annot"><a href="DataBaseTool.html#extractLastDateFromDataBase"><span class="hs-identifier">extractLastDateFromDataBase</span></a></span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="DataTypes.html"><span class="hs-identifier">DataTypes</span></a></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier">Actor</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier">Movie</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.HDBC</span></span><span>
+</span><span id="line-31"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">fromSql</span></span><span class="hs-special">,</span><span>
+</span><span id="line-32"></span><span>      </span><span class="annot"><span class="hs-identifier">toSql</span></span><span class="hs-special">,</span><span>
+</span><span id="line-33"></span><span>      </span><span class="annot"><span class="hs-identifier">quickQuery'</span></span><span class="hs-special">,</span><span>
+</span><span id="line-34"></span><span>      </span><span class="annot"><span class="hs-identifier">SqlValue</span></span><span class="hs-special">,</span><span>
+</span><span id="line-35"></span><span>      </span><span class="annot"><span class="hs-identifier">Statement</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">executeMany</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-36"></span><span>      </span><span class="annot"><span class="hs-identifier">IConnection</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">commit</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">disconnect</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">prepare</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">run</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.HDBC.Sqlite3</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">connectSqlite3</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Connection</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- | initiliase database</span><span>
+</span><span id="line-40"></span><span class="annot"><a href="DataBaseTool.html#initialiseDB"><span class="hs-identifier hs-type">initialiseDB</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span>  </span><span>
+</span><span id="line-41"></span><span id="initialiseDB"><span class="annot"><span class="annottext">initialiseDB :: IO Connection
+</span><a href="DataBaseTool.html#initialiseDB"><span class="hs-identifier hs-var hs-var">initialiseDB</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>   </span><span id="local-6989586621679137859"><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137859"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; IO Connection
+</span><span class="hs-identifier hs-var">connectSqlite3</span></span><span> </span><span class="annot"><span class="hs-string">&quot;database.sqlite&quot;</span></span><span>
+</span><span id="line-44"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+</span><span class="hs-identifier hs-var">run</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137859"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-string">&quot;CREATE TABLE IF NOT EXISTS movies (movieId INT PRIMARY KEY ON &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-45"></span><span>             </span><span class="annot"><span class="hs-string">&quot;CONFLICT IGNORE, name TEXT NOT NULL, release TEXT NOT NULL)&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-46"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+</span><span class="hs-identifier hs-var">run</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137859"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-string">&quot;CREATE TABLE IF NOT EXISTS actors (actorId INT PRIMARY KEY ON &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-47"></span><span>             </span><span class="annot"><span class="hs-string">&quot;CONFLICT IGNORE, name TEXT NOT NULL)&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-48"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+</span><span class="hs-identifier hs-var">run</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137859"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-string">&quot;CREATE TABLE IF NOT EXISTS plays (actorId INT NOT NULL, movieId &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-49"></span><span>             </span><span class="annot"><span class="hs-string">&quot;INT NOT NULL, PRIMARY KEY (actorId, movieId) ON CONFLICT IGNORE, &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-50"></span><span>             </span><span class="annot"><span class="hs-string">&quot;FOREIGN KEY (movieId) REFERENCES movies(movieId), FOREIGN KEY &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-51"></span><span>             </span><span class="annot"><span class="hs-string">&quot;(actorId) REFERENCES actors(actorId))&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-52"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; IO ()
+forall conn. IConnection conn =&gt; conn -&gt; IO ()
+</span><span class="hs-identifier hs-var">commit</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137859"><span class="hs-identifier hs-var">conn</span></a></span><span>
+</span><span id="line-53"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; IO Connection
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137859"><span class="hs-identifier hs-var">conn</span></a></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- | insert movies into the movies table</span><span>
+</span><span id="line-56"></span><span class="annot"><a href="DataBaseTool.html#insertMovieIntoDataBase"><span class="hs-identifier hs-type">insertMovieIntoDataBase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span id="insertMovieIntoDataBase"><span class="annot"><span class="annottext">insertMovieIntoDataBase :: Connection -&gt; [Movie] -&gt; IO ()
+</span><a href="DataBaseTool.html#insertMovieIntoDataBase"><span class="hs-identifier hs-var hs-var">insertMovieIntoDataBase</span></a></span></span><span> </span><span id="local-6989586621679137858"><span class="annot"><span class="annottext">conn :: Connection
+</span><a href="#local-6989586621679137858"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span id="local-6989586621679137857"><span class="annot"><span class="annottext">movie :: [Movie]
+</span><a href="#local-6989586621679137857"><span class="hs-identifier hs-var">movie</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679137856"><span class="annot"><span class="annottext">f :: Movie -&gt; [SqlValue]
+</span><a href="#local-6989586621679137856"><span class="hs-identifier hs-var hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span> </span><span id="local-6989586621679137854"><span class="annot"><span class="annottext">movieId :: Int
+</span><a href="#local-6989586621679137854"><span class="hs-identifier hs-var">movieId</span></a></span></span><span> </span><span id="local-6989586621679137853"><span class="annot"><span class="annottext">name :: FilePath
+</span><a href="#local-6989586621679137853"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679137852"><span class="annot"><span class="annottext">release :: FilePath
+</span><a href="#local-6989586621679137852"><span class="hs-identifier hs-var">release</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679137854"><span class="hs-identifier hs-var">movieId</span></a></span><span class="hs-special">,</span><span> </span><span>
+</span><span id="line-59"></span><span>                                          </span><span class="annot"><span class="annottext">FilePath -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679137853"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">,</span><span> </span><span>
+</span><span id="line-60"></span><span>                                          </span><span class="annot"><span class="annottext">FilePath -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679137852"><span class="hs-identifier hs-var">release</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-61"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679137851"><span class="annot"><span class="annottext">args :: [[SqlValue]]
+</span><a href="#local-6989586621679137851"><span class="hs-identifier hs-var hs-var">args</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Movie -&gt; [SqlValue]) -&gt; [Movie] -&gt; [[SqlValue]]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Movie -&gt; [SqlValue]
+</span><a href="#local-6989586621679137856"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[Movie]
+</span><a href="#local-6989586621679137857"><span class="hs-identifier hs-var">movie</span></a></span><span>
+</span><span id="line-62"></span><span>    </span><span id="local-6989586621679137850"><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137850"><span class="hs-identifier hs-var">stmt</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; IO Statement
+forall conn. IConnection conn =&gt; conn -&gt; FilePath -&gt; IO Statement
+</span><span class="hs-identifier hs-var">prepare</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137858"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;INSERT INTO movies VALUES (?, ?, ?)&quot;</span></span><span>
+</span><span id="line-63"></span><span>    </span><span class="annot"><span class="annottext">Statement -&gt; [[SqlValue]] -&gt; IO ()
+</span><span class="hs-identifier hs-var hs-var">executeMany</span></span><span> </span><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137850"><span class="hs-identifier hs-var">stmt</span></a></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137851"><span class="hs-identifier hs-var">args</span></a></span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="annottext">Connection -&gt; IO ()
+forall conn. IConnection conn =&gt; conn -&gt; IO ()
+</span><span class="hs-identifier hs-var">commit</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137858"><span class="hs-identifier hs-var">conn</span></a></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- | insert actors into actor table</span><span>
+</span><span id="line-67"></span><span class="annot"><a href="DataBaseTool.html#insertActorIntoDataBase"><span class="hs-identifier hs-type">insertActorIntoDataBase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-type">Actor</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span id="insertActorIntoDataBase"><span class="annot"><span class="annottext">insertActorIntoDataBase :: Connection -&gt; [Actor] -&gt; IO ()
+</span><a href="DataBaseTool.html#insertActorIntoDataBase"><span class="hs-identifier hs-var hs-var">insertActorIntoDataBase</span></a></span></span><span> </span><span id="local-6989586621679137849"><span class="annot"><span class="annottext">conn :: Connection
+</span><a href="#local-6989586621679137849"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span id="local-6989586621679137848"><span class="annot"><span class="annottext">actors :: [Actor]
+</span><a href="#local-6989586621679137848"><span class="hs-identifier hs-var">actors</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-69"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679137847"><span class="annot"><span class="annottext">f :: Actor -&gt; [SqlValue]
+</span><a href="#local-6989586621679137847"><span class="hs-identifier hs-var hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-type">Actor</span></a></span><span> </span><span id="local-6989586621679137845"><span class="annot"><span class="annottext">actorId :: Int
+</span><a href="#local-6989586621679137845"><span class="hs-identifier hs-var">actorId</span></a></span></span><span> </span><span id="local-6989586621679137844"><span class="annot"><span class="annottext">name :: FilePath
+</span><a href="#local-6989586621679137844"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="hs-identifier">_</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679137845"><span class="hs-identifier hs-var">actorId</span></a></span><span class="hs-special">,</span><span> </span><span>
+</span><span id="line-70"></span><span>                                    </span><span class="annot"><span class="annottext">FilePath -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679137844"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679137843"><span class="annot"><span class="annottext">actorArgs :: [[SqlValue]]
+</span><a href="#local-6989586621679137843"><span class="hs-identifier hs-var hs-var">actorArgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Actor -&gt; [SqlValue]) -&gt; [Actor] -&gt; [[SqlValue]]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Actor -&gt; [SqlValue]
+</span><a href="#local-6989586621679137847"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[Actor]
+</span><a href="#local-6989586621679137848"><span class="hs-identifier hs-var">actors</span></a></span><span>
+</span><span id="line-72"></span><span>    </span><span id="local-6989586621679137842"><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137842"><span class="hs-identifier hs-var">stmt</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; IO Statement
+forall conn. IConnection conn =&gt; conn -&gt; FilePath -&gt; IO Statement
+</span><span class="hs-identifier hs-var">prepare</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137849"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;INSERT INTO actors VALUES (?, ?)&quot;</span></span><span>
+</span><span id="line-73"></span><span>    </span><span class="annot"><span class="annottext">Statement -&gt; [[SqlValue]] -&gt; IO ()
+</span><span class="hs-identifier hs-var hs-var">executeMany</span></span><span> </span><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137842"><span class="hs-identifier hs-var">stmt</span></a></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137843"><span class="hs-identifier hs-var">actorArgs</span></a></span><span>
+</span><span id="line-74"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679137841"><span class="annot"><span class="annottext">f :: Actor -&gt; [[SqlValue]]
+</span><a href="#local-6989586621679137841"><span class="hs-identifier hs-var hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-type">Actor</span></a></span><span> </span><span id="local-6989586621679137840"><span class="annot"><span class="annottext">actorId :: Int
+</span><a href="#local-6989586621679137840"><span class="hs-identifier hs-var">actorId</span></a></span></span><span> </span><span id="local-6989586621679137839"><span class="annot"><span class="annottext">n :: FilePath
+</span><a href="#local-6989586621679137839"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-75"></span><span>        </span><span class="annot"><a href="#local-6989586621679137841"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-type">Actor</span></a></span><span> </span><span id="local-6989586621679137838"><span class="annot"><span class="annottext">actorId :: Int
+</span><a href="#local-6989586621679137838"><span class="hs-identifier hs-var">actorId</span></a></span></span><span> </span><span id="local-6989586621679137837"><span class="annot"><span class="annottext">n :: FilePath
+</span><a href="#local-6989586621679137837"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span> </span><span id="local-6989586621679137836"><span class="annot"><span class="annottext">movieId :: Int
+</span><a href="#local-6989586621679137836"><span class="hs-identifier hs-var">movieId</span></a></span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679137835"><span class="annot"><span class="annottext">xs :: [Movie]
+</span><a href="#local-6989586621679137835"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679137838"><span class="hs-identifier hs-var">actorId</span></a></span><span class="hs-special">,</span><span> </span><span>
+</span><span id="line-76"></span><span>                                                        </span><span class="annot"><span class="annottext">Int -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679137836"><span class="hs-identifier hs-var">movieId</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-77"></span><span>                                                       </span><span class="annot"><span class="annottext">[SqlValue] -&gt; [[SqlValue]] -&gt; [[SqlValue]]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Actor -&gt; [[SqlValue]]
+</span><a href="#local-6989586621679137841"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; FilePath -&gt; [Movie] -&gt; Actor
+</span><a href="DataTypes.html#Actor"><span class="hs-identifier hs-var">Actor</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679137838"><span class="hs-identifier hs-var">actorId</span></a></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679137837"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[Movie]
+</span><a href="#local-6989586621679137835"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679137834"><span class="annot"><span class="annottext">playsArgs :: [[SqlValue]]
+</span><a href="#local-6989586621679137834"><span class="hs-identifier hs-var hs-var">playsArgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Actor -&gt; [[SqlValue]]) -&gt; [Actor] -&gt; [[SqlValue]]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="annot"><span class="annottext">Actor -&gt; [[SqlValue]]
+</span><a href="#local-6989586621679137841"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[Actor]
+</span><a href="#local-6989586621679137848"><span class="hs-identifier hs-var">actors</span></a></span><span>
+</span><span id="line-79"></span><span>    </span><span id="local-6989586621679137832"><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137832"><span class="hs-identifier hs-var">stmt</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; IO Statement
+forall conn. IConnection conn =&gt; conn -&gt; FilePath -&gt; IO Statement
+</span><span class="hs-identifier hs-var">prepare</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137849"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;INSERT INTO plays VALUES (?, ?)&quot;</span></span><span>
+</span><span id="line-80"></span><span>    </span><span class="annot"><span class="annottext">Statement -&gt; [[SqlValue]] -&gt; IO ()
+</span><span class="hs-identifier hs-var hs-var">executeMany</span></span><span> </span><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137832"><span class="hs-identifier hs-var">stmt</span></a></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137834"><span class="hs-identifier hs-var">playsArgs</span></a></span><span>
+</span><span id="line-81"></span><span>    </span><span class="annot"><span class="annottext">Connection -&gt; IO ()
+forall conn. IConnection conn =&gt; conn -&gt; IO ()
+</span><span class="hs-identifier hs-var">commit</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137849"><span class="hs-identifier hs-var">conn</span></a></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | get all movies acted by given actor</span><span>
+</span><span id="line-84"></span><span class="annot"><a href="DataBaseTool.html#searchMoviesFromDataBase"><span class="hs-identifier hs-type">searchMoviesFromDataBase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-85"></span><span id="searchMoviesFromDataBase"><span class="annot"><span class="annottext">searchMoviesFromDataBase :: Connection -&gt; FilePath -&gt; IO (Maybe [Movie])
+</span><a href="DataBaseTool.html#searchMoviesFromDataBase"><span class="hs-identifier hs-var hs-var">searchMoviesFromDataBase</span></a></span></span><span> </span><span id="local-6989586621679137830"><span class="annot"><span class="annottext">conn :: Connection
+</span><a href="#local-6989586621679137830"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span id="local-6989586621679137829"><span class="annot"><span class="annottext">name :: FilePath
+</span><a href="#local-6989586621679137829"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679137828"><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137828"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+</span><span class="hs-identifier hs-var">quickQuery'</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137830"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-string">&quot;SELECT movies.* FROM movies, actors, plays &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-87"></span><span>                              </span><span class="annot"><span class="hs-string">&quot;WHERE actors.name == ? &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-88"></span><span>                              </span><span class="annot"><span class="hs-string">&quot;AND actors.actorId = plays.actorId &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-89"></span><span>                              </span><span class="annot"><span class="hs-string">&quot;AND  plays.movieId = movies.movieId&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">FilePath -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679137829"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137828"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe [Movie] -&gt; IO (Maybe [Movie])
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe [Movie]
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-92"></span><span>    </span><span id="local-6989586621679137827"><span class="annot"><span class="annottext">x :: [[SqlValue]]
+</span><a href="#local-6989586621679137827"><span class="hs-identifier hs-var">x</span></a></span></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe [Movie] -&gt; IO (Maybe [Movie])
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Movie] -&gt; Maybe [Movie]
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">([Movie] -&gt; Maybe [Movie]) -&gt; [Movie] -&gt; Maybe [Movie]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]] -&gt; [Movie]
+</span><a href="#local-6989586621679137826"><span class="hs-identifier hs-var">convertFromSql</span></a></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137827"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-94"></span><span>    </span><span class="annot"><a href="#local-6989586621679137826"><span class="hs-identifier hs-type">convertFromSql</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">SqlValue</span></span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-95"></span><span>    </span><span id="local-6989586621679137826"><span class="annot"><span class="annottext">convertFromSql :: [[SqlValue]] -&gt; [Movie]
+</span><a href="#local-6989586621679137826"><span class="hs-identifier hs-var hs-var">convertFromSql</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([SqlValue] -&gt; Movie) -&gt; [[SqlValue]] -&gt; [Movie]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679137825"><span class="annot"><span class="annottext">x :: [SqlValue]
+</span><a href="#local-6989586621679137825"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; FilePath -&gt; FilePath -&gt; Movie
+</span><a href="DataTypes.html#Movie"><span class="hs-identifier hs-var">Movie</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; Int
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; Int) -&gt; SqlValue -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; SqlValue
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137825"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; FilePath
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; FilePath) -&gt; SqlValue -&gt; FilePath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137825"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; Int -&gt; SqlValue
+forall a. [a] -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-96"></span><span>                         </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; FilePath
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; FilePath) -&gt; SqlValue -&gt; FilePath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137825"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; Int -&gt; SqlValue
+forall a. [a] -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- | disconnect the database</span><span>
+</span><span id="line-99"></span><span class="annot"><a href="DataBaseTool.html#disconnectDB"><span class="hs-identifier hs-type">disconnectDB</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span id="disconnectDB"><span class="annot"><span class="annottext">disconnectDB :: Connection -&gt; IO ()
+</span><a href="DataBaseTool.html#disconnectDB"><span class="hs-identifier hs-var hs-var">disconnectDB</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; IO ()
+forall conn. IConnection conn =&gt; conn -&gt; IO ()
+</span><span class="hs-identifier hs-var">disconnect</span></span><span>
+</span><span id="line-101"></span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- | drop all tables </span><span>
+</span><span id="line-103"></span><span class="annot"><a href="DataBaseTool.html#dropTablesFromDatabase"><span class="hs-identifier hs-type">dropTablesFromDatabase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span id="dropTablesFromDatabase"><span class="annot"><span class="annottext">dropTablesFromDatabase :: Connection -&gt; IO ()
+</span><a href="DataBaseTool.html#dropTablesFromDatabase"><span class="hs-identifier hs-var hs-var">dropTablesFromDatabase</span></a></span></span><span> </span><span id="local-6989586621679137822"><span class="annot"><span class="annottext">conn :: Connection
+</span><a href="#local-6989586621679137822"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-105"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+</span><span class="hs-identifier hs-var">run</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137822"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;DROP TABLE IF EXISTS movies&quot;</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-106"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+</span><span class="hs-identifier hs-var">run</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137822"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;DROP TABLE IF EXISTS actors&quot;</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-107"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+</span><span class="hs-identifier hs-var">run</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137822"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;DROP TABLE IF EXISTS plays&quot;</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-108"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; IO ()
+forall conn. IConnection conn =&gt; conn -&gt; IO ()
+</span><span class="hs-identifier hs-var">commit</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137822"><span class="hs-identifier hs-var">conn</span></a></span><span>
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- | remove all data before a given day</span><span>
+</span><span id="line-111"></span><span class="annot"><a href="DataBaseTool.html#cleanupDatabase"><span class="hs-identifier hs-type">cleanupDatabase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-112"></span><span id="cleanupDatabase"><span class="annot"><span class="annottext">cleanupDatabase :: Connection -&gt; FilePath -&gt; IO ()
+</span><a href="DataBaseTool.html#cleanupDatabase"><span class="hs-identifier hs-var hs-var">cleanupDatabase</span></a></span></span><span> </span><span id="local-6989586621679137821"><span class="annot"><span class="annottext">conn :: Connection
+</span><a href="#local-6989586621679137821"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span id="local-6989586621679137820"><span class="annot"><span class="annottext">date :: FilePath
+</span><a href="#local-6989586621679137820"><span class="hs-identifier hs-var">date</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-113"></span><span>   </span><span id="local-6989586621679137819"><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137819"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+</span><span class="hs-identifier hs-var">quickQuery'</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137821"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-string">&quot;SELECT movies.movieId FROM movies WHERE &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-114"></span><span>              </span><span class="annot"><span class="hs-string">&quot;movies.release &lt; ?&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">FilePath -&gt; SqlValue
+forall a. Convertible a SqlValue =&gt; a -&gt; SqlValue
+</span><span class="hs-identifier hs-var">toSql</span></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679137820"><span class="hs-identifier hs-var">date</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-115"></span><span>   </span><span id="local-6989586621679137818"><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137818"><span class="hs-identifier hs-var">stmt</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; IO Statement
+forall conn. IConnection conn =&gt; conn -&gt; FilePath -&gt; IO Statement
+</span><span class="hs-identifier hs-var">prepare</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137821"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;DELETE FROM movies WHERE movies.movieId = ?&quot;</span></span><span>
+</span><span id="line-116"></span><span>   </span><span class="annot"><span class="annottext">Statement -&gt; [[SqlValue]] -&gt; IO ()
+</span><span class="hs-identifier hs-var hs-var">executeMany</span></span><span> </span><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137818"><span class="hs-identifier hs-var">stmt</span></a></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137819"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-117"></span><span>   </span><span id="local-6989586621679137817"><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137817"><span class="hs-identifier hs-var">stmt</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; IO Statement
+forall conn. IConnection conn =&gt; conn -&gt; FilePath -&gt; IO Statement
+</span><span class="hs-identifier hs-var">prepare</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137821"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;DELETE FROM plays WHERE plays.movieId = ?&quot;</span></span><span>
+</span><span id="line-118"></span><span>   </span><span class="annot"><span class="annottext">Statement -&gt; [[SqlValue]] -&gt; IO ()
+</span><span class="hs-identifier hs-var hs-var">executeMany</span></span><span> </span><span class="annot"><span class="annottext">Statement
+</span><a href="#local-6989586621679137817"><span class="hs-identifier hs-var">stmt</span></a></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137819"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-119"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO Integer
+</span><span class="hs-identifier hs-var">run</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137821"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-string">&quot;DELETE FROM actors WHERE NOT EXISTS (SELECT * FROM plays WHERE &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-120"></span><span>             </span><span class="annot"><span class="hs-string">&quot;actors.actorId == plays.actorId)&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-121"></span><span>   </span><span class="annot"><span class="annottext">Connection -&gt; IO ()
+forall conn. IConnection conn =&gt; conn -&gt; IO ()
+</span><span class="hs-identifier hs-var">commit</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137821"><span class="hs-identifier hs-var">conn</span></a></span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- | select all movies from movies table</span><span>
+</span><span id="line-124"></span><span class="annot"><a href="DataBaseTool.html#extarctAllMoviesFromDatabase"><span class="hs-identifier hs-type">extarctAllMoviesFromDatabase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-125"></span><span id="extarctAllMoviesFromDatabase"><span class="annot"><span class="annottext">extarctAllMoviesFromDatabase :: Connection -&gt; IO [Movie]
+</span><a href="DataBaseTool.html#extarctAllMoviesFromDatabase"><span class="hs-identifier hs-var hs-var">extarctAllMoviesFromDatabase</span></a></span></span><span> </span><span id="local-6989586621679137816"><span class="annot"><span class="annottext">conn :: Connection
+</span><a href="#local-6989586621679137816"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-126"></span><span>  </span><span id="local-6989586621679137815"><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137815"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+</span><span class="hs-identifier hs-var">quickQuery'</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137816"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;SELECT * FROM movies&quot;</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-127"></span><span>  </span><span class="annot"><span class="annottext">[Movie] -&gt; IO [Movie]
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">([Movie] -&gt; IO [Movie]) -&gt; [Movie] -&gt; IO [Movie]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">([SqlValue] -&gt; Movie) -&gt; [[SqlValue]] -&gt; [Movie]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679137814"><span class="annot"><span class="annottext">x :: [SqlValue]
+</span><a href="#local-6989586621679137814"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; FilePath -&gt; FilePath -&gt; Movie
+</span><a href="DataTypes.html#Movie"><span class="hs-identifier hs-var">Movie</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; Int
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; Int) -&gt; SqlValue -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; SqlValue
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137814"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; FilePath
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; FilePath) -&gt; SqlValue -&gt; FilePath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137814"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; Int -&gt; SqlValue
+forall a. [a] -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; FilePath
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; FilePath) -&gt; SqlValue -&gt; FilePath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137814"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; Int -&gt; SqlValue
+forall a. [a] -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137815"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-129"></span><span>
+</span><span id="line-130"></span><span class="hs-comment">-- | select all actors from actors table </span><span>
+</span><span id="line-131"></span><span class="annot"><a href="DataBaseTool.html#extarctAllActorsFromDatabase"><span class="hs-identifier hs-type">extarctAllActorsFromDatabase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="DataTypes.html#Actor"><span class="hs-identifier hs-type">Actor</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-132"></span><span id="extarctAllActorsFromDatabase"><span class="annot"><span class="annottext">extarctAllActorsFromDatabase :: Connection -&gt; IO [Actor]
+</span><a href="DataBaseTool.html#extarctAllActorsFromDatabase"><span class="hs-identifier hs-var hs-var">extarctAllActorsFromDatabase</span></a></span></span><span> </span><span id="local-6989586621679137813"><span class="annot"><span class="annottext">conn :: Connection
+</span><a href="#local-6989586621679137813"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-133"></span><span>  </span><span id="local-6989586621679137812"><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137812"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+</span><span class="hs-identifier hs-var">quickQuery'</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137813"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;SELECT * FROM actors&quot;</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-134"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679137811"><span class="annot"><span class="annottext">ids :: [SqlValue]
+</span><a href="#local-6989586621679137811"><span class="hs-identifier hs-var hs-var">ids</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([SqlValue] -&gt; SqlValue) -&gt; [[SqlValue]] -&gt; [SqlValue]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; SqlValue
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137812"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-135"></span><span>  </span><span id="local-6989586621679137810"><span class="annot"><span class="annottext">[[[SqlValue]]]
+</span><a href="#local-6989586621679137810"><span class="hs-identifier hs-var">result2</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; IO [[SqlValue]]) -&gt; [SqlValue] -&gt; IO [[[SqlValue]]]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679137808"><span class="annot"><span class="annottext">x :: SqlValue
+</span><a href="#local-6989586621679137808"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+</span><span class="hs-identifier hs-var">quickQuery'</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137813"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-string">&quot;SELECT movies.* FROM movies, plays &quot;</span></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; FilePath -&gt; FilePath
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span>
+</span><span id="line-136"></span><span>              </span><span class="annot"><span class="hs-string">&quot;WHERE ? = plays.actorId AND plays.movieId = movies.movieId&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">SqlValue
+</span><a href="#local-6989586621679137808"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137811"><span class="hs-identifier hs-var">ids</span></a></span><span>
+</span><span id="line-137"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679137807"><span class="annot"><span class="annottext">finalResult :: [([SqlValue], [[SqlValue]])]
+</span><a href="#local-6989586621679137807"><span class="hs-identifier hs-var hs-var">finalResult</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[SqlValue]] -&gt; [[[SqlValue]]] -&gt; [([SqlValue], [[SqlValue]])]
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137812"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">[[[SqlValue]]]
+</span><a href="#local-6989586621679137810"><span class="hs-identifier hs-var">result2</span></a></span><span>
+</span><span id="line-138"></span><span>  </span><span class="annot"><span class="annottext">[Actor] -&gt; IO [Actor]
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">([Actor] -&gt; IO [Actor]) -&gt; [Actor] -&gt; IO [Actor]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(([SqlValue], [[SqlValue]]) -&gt; Actor)
+-&gt; [([SqlValue], [[SqlValue]])] -&gt; [Actor]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679137806"><span class="annot"><span class="annottext">x :: ([SqlValue], [[SqlValue]])
+</span><a href="#local-6989586621679137806"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; FilePath -&gt; [Movie] -&gt; Actor
+</span><a href="DataTypes.html#Actor"><span class="hs-identifier hs-var">Actor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; Int
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; Int) -&gt; SqlValue -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; SqlValue
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">([SqlValue] -&gt; SqlValue) -&gt; [SqlValue] -&gt; SqlValue
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">([SqlValue], [[SqlValue]]) -&gt; [SqlValue]
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">([SqlValue], [[SqlValue]])
+</span><a href="#local-6989586621679137806"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; FilePath
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; FilePath) -&gt; SqlValue -&gt; FilePath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">([SqlValue], [[SqlValue]]) -&gt; [SqlValue]
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">([SqlValue], [[SqlValue]])
+</span><a href="#local-6989586621679137806"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; Int -&gt; SqlValue
+forall a. [a] -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">([SqlValue] -&gt; Movie) -&gt; [[SqlValue]] -&gt; [Movie]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; Movie
+</span><a href="#local-6989586621679137805"><span class="hs-identifier hs-var">parseMovie</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">([SqlValue], [[SqlValue]]) -&gt; [[SqlValue]]
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">([SqlValue], [[SqlValue]])
+</span><a href="#local-6989586621679137806"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[([SqlValue], [[SqlValue]])]
+</span><a href="#local-6989586621679137807"><span class="hs-identifier hs-var">finalResult</span></a></span><span>
+</span><span id="line-140"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-141"></span><span>      </span><span class="annot"><a href="#local-6989586621679137805"><span class="hs-identifier hs-type">parseMovie</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">SqlValue</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="DataTypes.html#Movie"><span class="hs-identifier hs-type">Movie</span></a></span><span>
+</span><span id="line-142"></span><span>      </span><span id="local-6989586621679137805"><span class="annot"><span class="annottext">parseMovie :: [SqlValue] -&gt; Movie
+</span><a href="#local-6989586621679137805"><span class="hs-identifier hs-var hs-var">parseMovie</span></a></span></span><span> </span><span id="local-6989586621679137804"><span class="annot"><span class="annottext">x :: [SqlValue]
+</span><a href="#local-6989586621679137804"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; FilePath -&gt; FilePath -&gt; Movie
+</span><a href="DataTypes.html#Movie"><span class="hs-identifier hs-var">Movie</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; Int
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; Int) -&gt; SqlValue -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; SqlValue
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137804"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; FilePath
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; FilePath) -&gt; SqlValue -&gt; FilePath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137804"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; Int -&gt; SqlValue
+forall a. [a] -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlValue -&gt; FilePath
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; FilePath) -&gt; SqlValue -&gt; FilePath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue]
+</span><a href="#local-6989586621679137804"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; Int -&gt; SqlValue
+forall a. [a] -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-143"></span><span>
+</span><span id="line-144"></span><span class="hs-comment">--  Return the date of the last movie from the Database</span><span>
+</span><span id="line-145"></span><span class="annot"><a href="DataBaseTool.html#extractLastDateFromDataBase"><span class="hs-identifier hs-type">extractLastDateFromDataBase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Connection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">)</span><span>
+</span><span id="line-146"></span><span id="extractLastDateFromDataBase"><span class="annot"><span class="annottext">extractLastDateFromDataBase :: Connection -&gt; IO (Maybe FilePath)
+</span><a href="DataBaseTool.html#extractLastDateFromDataBase"><span class="hs-identifier hs-var hs-var">extractLastDateFromDataBase</span></a></span></span><span> </span><span id="local-6989586621679137803"><span class="annot"><span class="annottext">conn :: Connection
+</span><a href="#local-6989586621679137803"><span class="hs-identifier hs-var">conn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-147"></span><span>  </span><span id="local-6989586621679137802"><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137802"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Connection -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+forall conn.
+IConnection conn =&gt;
+conn -&gt; FilePath -&gt; [SqlValue] -&gt; IO [[SqlValue]]
+</span><span class="hs-identifier hs-var">quickQuery'</span></span><span> </span><span class="annot"><span class="annottext">Connection
+</span><a href="#local-6989586621679137803"><span class="hs-identifier hs-var">conn</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;SELECT MAX(movies.release) FROM movies&quot;</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-148"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137802"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]] -&gt; [[SqlValue]] -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Maybe FilePath -&gt; IO (Maybe FilePath)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe FilePath
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe FilePath -&gt; IO (Maybe FilePath)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Maybe FilePath -&gt; IO (Maybe FilePath))
+-&gt; Maybe FilePath -&gt; IO (Maybe FilePath)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SqlValue -&gt; Maybe FilePath
+forall a. Convertible SqlValue a =&gt; SqlValue -&gt; a
+</span><span class="hs-identifier hs-var">fromSql</span></span><span> </span><span class="annot"><span class="annottext">(SqlValue -&gt; Maybe FilePath) -&gt; SqlValue -&gt; Maybe FilePath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SqlValue] -&gt; SqlValue
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">([SqlValue] -&gt; SqlValue) -&gt; [SqlValue] -&gt; SqlValue
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]] -&gt; [SqlValue]
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">[[SqlValue]]
+</span><a href="#local-6989586621679137802"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-149"></span></pre></body></html>

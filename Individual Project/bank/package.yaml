@@ -1,0 +1,55 @@
+name:                bank
+version:             0.1.0.0
+github:              "githubuser/bank"
+license:             BSD3
+author:              "Yang Tian"
+maintainer:          "tian.yang@hss19.qmul.ac.uk"
+copyright:           "2020 Yang Tian"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/bank#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- stm
+- say
+- random
+- containers
+- TCache
+- parallel
+- async
+
+library:
+  source-dirs: src
+
+executables:
+  bank-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - bank
+
+tests:
+  bank-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - bank
